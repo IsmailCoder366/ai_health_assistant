@@ -67,7 +67,7 @@ print('Error $e');
     try{
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_conversationsKey);
-      await prefs.reload();
+      await prefs.remove(_currentConversationKey);
     }catch(e){print('Error $e');}
   }
 
