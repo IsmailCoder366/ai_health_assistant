@@ -14,28 +14,32 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AI Health Assistant',
-      theme : ThemeData(
+      theme: ThemeData(
         fontFamily: 'SF Pro Display',
         primaryColor: Color(0xff00BFA6),
         scaffoldBackgroundColor: Color(0xffF8FFFE),
-        colorScheme: ColorScheme.dark(
+
+        colorScheme: ColorScheme.light(
           primary: Color(0xff00BFA6),
           secondary: Color(0xff4CAF50),
-          surface: Colors.white,
-          background:Color(0xffF8FFFE)
         ),
+
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.black),
+          bodyMedium: TextStyle(color: Colors.black),
+          bodySmall: TextStyle(color: Colors.black),
+        ),
+
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 0,
-          iconTheme: IconThemeData(
-            color: Color(0xff00BFA6)
-          ),
+          iconTheme: IconThemeData(color: Color(0xff00BFA6)),
           titleTextStyle: TextStyle(
             color: Color(0xFF1A1A1A),
             fontSize: 18,
-            fontWeight: FontWeight.w600
+            fontWeight: FontWeight.w600,
           ),
-        )
+        ),
       ),
 
       home: ChartScreen(),

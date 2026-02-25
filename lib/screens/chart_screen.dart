@@ -75,6 +75,30 @@ void dispose(){
     _scrollController.dispose();
     super.dispose();
 }
+
+_startNewConversation()async{
+  final welcomeMessage = Message(
+      id: _uuid.v4(),
+
+      text : "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can i assist you today",
+      isUser : false,
+      timestamp : DateTime.now(),
+      messageType: 'welcome'
+  );
+  _currentConversation = Conversation(
+      id: _uuid.v4(),
+      title: 'New Health Consultation',
+      createdAt: DateTime.now(),
+      lastUpdated: DateTime.now(),
+      messages: [welcomeMessage],
+      userContext: {}
+  );
+
+
+  await _storageService.saveConversation(_currentConversation!);
+  await _storageService.setCurrentConversationId(_currentConversation!.id);
+}
+
 Future<void> _sendMessage(String text) async{
     if(text.trim().isEmpty || _isLoading) return;
     final newContext = ContextService.extractUserContext(text);
@@ -238,9 +262,43 @@ void _clearCurrentChat(){
                 ),
                 )
               ],
-            ),)
+            )),
           ],
         ),
+        actions: [
+          IconButton(onPressed: _startNewConversation, icon: Icon(Icons.chat_bubble_outline)),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: Color(0xFF6B7280)),
+            onSelected: (value){
+              if(value == 'clear'){
+                _clearCurrentChat();
+              }
+              else if(value == 'conversations'){
+                _showConversations();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                  value: 'conversations',
+                  child: Row(
+                children: [
+                  Icon(Icons.history, size: 20, color: Color(0xFF6B7280)),
+                  SizedBox(width: 12),
+                  Text('View All Chats')
+                ],
+              )),
+              PopupMenuItem(
+                  value: 'clear',
+                  child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: Colors.redAccent),
+                  SizedBox(width: 12),
+                  Text('Clear current Chats')
+                ],
+              )),
+            ]
+          ),
+        ],
       ),
     );
   }
