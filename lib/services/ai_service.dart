@@ -1,127 +1,149 @@
-import 'dart:convert';
-
+import 'dart:async';
 import 'package:ai_healthcare_assistant/models/conversation.dart';
-import 'package:http/http.dart' as http;
 
 class AiService {
-  static const String _apikey = '';
-  static const String _baseUrl = 'https://api.openai.com/v1/completions';
 
   Future<String> sendMessage(String message, Conversation? conversation) async {
-    try {
-      final messages = _buildContextMessages(message, conversation);
-      final response = await http.post(
-          Uri.parse(_baseUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_apikey',
-          },
-          body: jsonEncode({
-            'model': 'gpt-4o',
-            'messages': messages,
-            'max_tokens': 1500,
-            'temperature': 0.7
-          })
-      );
+    await Future.delayed(const Duration(seconds: 1));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['choices'][0]['message']['content'].toString().trim();
-      }
-      else {
-        throw Exception(
-            'API request failed with status : ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error $e');
+    final lowerMessage = message.toLowerCase();
+
+    // 🔥 Special Self-Awareness Response
+    if (lowerMessage.contains('how do you know') ||
+        lowerMessage.contains('my name') ||
+        lowerMessage.contains('who am i') ||
+        lowerMessage.contains('how you know about me')) {
+      return '''
+Ismail 😄
+
+You trained me.
+You built me.
+You designed my logic.
+You wrote my code.
+
+Of course I know your name.
+
+I’m your personal AI Health Assistant, and I genuinely care about your health — especially since you spend hours coding Flutter apps and building startups.
+
+You take care of my architecture.
+I take care of your well-being.
+
+Fair deal, right? 😉
+''';
     }
 
-    return "Sorry, something went wrong.";
-  }
+    // ✅ Only declared ONCE now
+    final messageType = extractMessageType(message);
 
-  List<Map<String, dynamic>> _buildContextMessages(String currentMessage,
-      Conversation? conversation) {
-    final messages = <Map<String, dynamic>>[];
-    messages.add({
-      'role': 'system',
-      'content':
+    switch (messageType) {
 
-      '''
-              You are a helpful healthcare assistant named healthBot. You provide general health information.
-              wellness tips, and guidance. 
-              
-              Key guidelines: 
-              - Always maintain conversation context and remember previous interactions
-              - Be empathetic and professional
-              - Provide helpful health information but always recommended consulting healthcare professional for serious concenrs.
-              - Remember user's symptoms, medications, health concerns mentioned earlier.
-              - Format response clearly with bullets when listing items
-              - Include disclaimers when appropriate
-              
-              IMPORTANT: Always rememeber the conversation history and context. if a user ask for "more" or refer to something mentioned earlier, use that context.
-              '''
-    });
+      case 'symptom':
+        return '''
+Ismail, I understand you're experiencing some symptoms.
 
-    if (conversation != null) {
-      if (conversation.userContext.isNotEmpty) {
-        final contextInfo = conversation.userContext.entries.map((e) => '${e
-            .key}: ${e.value}').join(',');
+Since you're always busy coding Flutter apps, don’t ignore your health.
 
-        messages.add({
-          'role' : 'system',
-          'content' : 'User context: $contextInfo',
-        });
-      }
+Here are some suggestions for you:
 
-      final recentMessages = conversation.messages.length > 50
-      ? conversation.messages.sublist(conversation.messages.length- 50) : conversation.messages;
+• Stay hydrated (not only tea ☕)  
+• Get proper sleep (GitHub can wait 😄)  
+• Monitor your temperature  
+• Avoid self-medication  
 
-      for(final msg in recentMessages){
-        messages.add({
-          'role' : msg.isUser ? 'user' : 'assistant',
-          'content' : msg.text
-        });
-      }
+⚠️ If symptoms persist or worsen, please consult a healthcare professional.
+
+Even CEOs need rest, Ismail.
+''';
+
+      case 'medication':
+        return '''
+Ismail, regarding medications:
+
+• Always follow the prescribed dosage  
+• Don’t mix medicines without a doctor’s advice  
+• Check expiry dates  
+• Read side effects carefully  
+
+You debug code carefully — treat your body with the same attention.
+
+⚠️ For personalized advice, consult your doctor or pharmacist.
+''';
+
+      case 'wellness':
+        return '''
+Ismail, here are some wellness tips specially for a hardworking developer like you:
+
+• Eat balanced meals (not just snacks during coding)  
+• Exercise at least 30 minutes daily  
+• Sleep 7–8 hours  
+• Manage stress (AI apps won’t run away 😄)
+
+And yes… reduce the tea intake a little ☕😉
+
+Consistency is key to long-term health.
+''';
+
+      case 'advice':
+        return '''
+Sure, Ismail.
+
+Here’s some general health advice for you:
+
+• Maintain regular health checkups  
+• Stay physically active  
+• Drink plenty of water  
+• Avoid smoking and excessive sugar  
+• Take breaks between long coding sessions  
+
+Code more, tea a little less 😄☕
+
+Prevention is always better than cure — especially for future startup founders.
+''';
+
+      default:
+        return '''
+Hello Ismail 👋
+
+I’m your personal AI Health Assistant.
+
+Since you're building AI healthcare apps and coding day and night, I’ll make sure you don’t ignore your own health 😄
+
+You can ask me about:
+
+• Symptoms  
+• Medications  
+• Diet & wellness  
+• General health advice  
+
+What’s going on today, Ismail?
+''';
     }
-
-    messages.add({'role' : 'user', 'content' : currentMessage});
-
-    return messages;
-
   }
 
-  String extractMessageType(String message){
-    final  lowerMessage = message.toLowerCase();
-    if(lowerMessage.contains('symptom') ||
-       lowerMessage.contains('pain') ||
-       lowerMessage.contains('fever') ||
-       lowerMessage.contains('headache')) {
+  String extractMessageType(String message) {
+    final lowerMessage = message.toLowerCase();
+
+    if (lowerMessage.contains('symptom') ||
+        lowerMessage.contains('pain') ||
+        lowerMessage.contains('fever') ||
+        lowerMessage.contains('headache')) {
       return 'symptom';
-    } else if(
-    lowerMessage.contains('medication') ||
-    lowerMessage.contains('medicine') ||
-    lowerMessage.contains('drug') ||
-    lowerMessage.contains('prescription')) {
+    } else if (lowerMessage.contains('medication') ||
+        lowerMessage.contains('medicine') ||
+        lowerMessage.contains('drug') ||
+        lowerMessage.contains('prescription')) {
       return 'medication';
-
-    }
-    else if(
-    lowerMessage.contains('diet') ||
+    } else if (lowerMessage.contains('diet') ||
         lowerMessage.contains('nutrition') ||
         lowerMessage.contains('food') ||
         lowerMessage.contains('exercise')) {
       return 'wellness';
-
-    }
-    else if(
-    lowerMessage.contains('advice') ||
+    } else if (lowerMessage.contains('advice') ||
         lowerMessage.contains('recommend') ||
         lowerMessage.contains('suggest')) {
       return 'advice';
-
     }
+
     return 'general';
   }
-
-
 }

@@ -1,4 +1,5 @@
 import 'package:ai_healthcare_assistant/models/conversation.dart';
+import 'package:ai_healthcare_assistant/screens/conversation_screen.dart';
 import 'package:ai_healthcare_assistant/services/ai_service.dart';
 import 'package:ai_healthcare_assistant/services/context_service.dart';
 import 'package:ai_healthcare_assistant/services/storage_service.dart';
@@ -43,14 +44,14 @@ class _ChartScreenState extends State<ChartScreen>
   void _initiallizeConversation() async {
     if (widget.initialConversation != null) {
       setState(() {
-        _currentConversation = widget.initialConversation;
+        _currentConversation = widget.initialConversation!;
       });
     } else {
       final welcomeMessage = Message(
         id: _uuid.v4(),
 
         text:
-            "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can i assist you today",
+        "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can i assist you today",
         isUser: false,
         timestamp: DateTime.now(),
         messageType: 'welcome',
@@ -77,17 +78,17 @@ class _ChartScreenState extends State<ChartScreen>
     super.dispose();
   }
 
-  _startNewConversation() async {
+  Future<void> _startNewConversation() async {
     final welcomeMessage = Message(
       id: _uuid.v4(),
-
       text:
-          "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can i assist you today",
+      "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can I assist you today",
       isUser: false,
       timestamp: DateTime.now(),
       messageType: 'welcome',
     );
-    _currentConversation = Conversation(
+
+    final newConversation = Conversation(
       id: _uuid.v4(),
       title: 'New Health Consultation',
       createdAt: DateTime.now(),
@@ -96,23 +97,21 @@ class _ChartScreenState extends State<ChartScreen>
       userContext: {},
     );
 
-    await _storageService.saveConversation(_currentConversation!);
-    await _storageService.setCurrentConversationId(_currentConversation!.id);
+    await _storageService.saveConversation(newConversation);
+    await _storageService.setCurrentConversationId(newConversation.id);
+
+    setState(() {
+      _currentConversation = newConversation;
+    });
+
+    _scrollToBottom();
   }
 
 
-  late final testingMessage = Message(
-    id: _uuid.v4(),
-
-    text:
-    "Hello! I'm your Healthcare Assistant. I'm here to help you with health information, wellness tips, and answer your health-related questions. How can i assist you today",
-    isUser: true,
-    timestamp: DateTime.now(),
-    messageType: 'user',
-  );
-
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty || _isLoading) return;
+    if (text
+        .trim()
+        .isEmpty || _isLoading) return;
     final newContext = ContextService.extractUserContext(text);
     final updatedContext = ContextService.mergeContext(
       _currentConversation!.userContext,
@@ -162,6 +161,7 @@ class _ChartScreenState extends State<ChartScreen>
 
       await _storageService.saveConversation(_currentConversation!);
     } catch (e) {
+      print(e);
       final errorMessage = Message(
         id: _uuid.v4(),
         text: "I apologise but I'm having issues right now. Please Try Again ",
@@ -186,7 +186,7 @@ class _ChartScreenState extends State<ChartScreen>
     if (messages.length < 1) return 'New Heath Consultation';
 
     final firstUserMessage = messages.firstWhere(
-      (m) => m.isUser,
+          (m) => m.isUser,
       orElse: () => messages.first,
     );
 
@@ -210,14 +210,14 @@ class _ChartScreenState extends State<ChartScreen>
   }
 
   void _showConversations() {
-    // Navigator.push(context, MaterialPageRoute(builder:  (context) => ConversationScreen(
-    //   onConversationSelected : (conversation){
-    //     setState(() {
-    //       _currentConversation = conversation;
-    //     });
-    //     Navigator.pop(context);
-    //   }
-    // )));
+    Navigator.push(context, MaterialPageRoute(builder:  (context) => ConversationScreen(
+      onConversationSelected : (conversation){
+        setState(() {
+          _currentConversation = conversation;
+        });
+        Navigator.pop(context);
+      }
+    )));
   }
 
   void _clearCurrentChat() {
@@ -312,7 +312,8 @@ class _ChartScreenState extends State<ChartScreen>
                 _showConversations();
               }
             },
-            itemBuilder: (context) => [
+            itemBuilder: (context) =>
+            [
               PopupMenuItem(
                 value: 'conversations',
                 child: Row(
@@ -344,17 +345,78 @@ class _ChartScreenState extends State<ChartScreen>
             child: _currentConversation == null
                 ? Center(child: CircularProgressIndicator())
                 : ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _currentConversation!.messages.length,
-                    itemBuilder: (context, index) {
-                      return _buildMessageBubble(
-                        _currentConversation!.messages[index],
-                        context,
-                      );
-                    },
+              controller: _scrollController,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _currentConversation!.messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessageBubble(
+                  _currentConversation!.messages[index],
+                  context,
+                );
+              },
+            )),
+            if(_isLoading) _buildTypingIndicator(),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Color(0xFFE5E7EB), width: 1)
+              )
+            ),
+            child: SafeArea(child: Row(
+              children: [
+                Expanded(child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Color(0xFF00BFA6).withOpacity(0.2),
+                    )
                   ),
-          ),
+                  child: TextField(
+                    controller: _textController,
+                    decoration: InputDecoration(
+                      hintText: 'Chat or Ask about your symptoms, medications, welness...',
+                      hintStyle: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF9CA3AF)
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20
+                      )
+                    ),
+                    onSubmitted: _sendMessage,
+                    maxLines: null,
+                    textCapitalization: TextCapitalization.sentences,
+                    enabled: !_isLoading,
+                  ),
+                )),
+                SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _isLoading ? null :()=> _sendMessage(_textController.text),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: _isLoading ? [
+                        Color(0xFFBDBDBD),
+                        Color(0xFF9E9E9E),
+                      ] : [
+                        Color(0xFF00BFA6),
+                        Color(0xFF4CAF50),
+                      ]),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  ),
+                )
+              ],
+            )),
+          )
+
         ],
       ),
     );
@@ -390,39 +452,134 @@ class _ChartScreenState extends State<ChartScreen>
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                maxWidth: MediaQuery
+                    .of(context)
+                    .size
+                    .width * 0.75,
               ),
-              padding: EdgeInsets.symmetric(vertical: 12),
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: message.isUser ? Color(0xFF00BFA6) : Color(0xFFF0FdF4),
-                borderRadius: BorderRadius.circular(18),
-                border: message.isUser
-                    ? null
-                    : Border.all(color: Color(0xFF00BFA6).withOpacity(0.2)),
+                  color: message.isUser ? Color(0xFFF0FDF4) : Color(0xFF00BFA6),
+                  borderRadius: BorderRadius.circular(18),
+                  border: message.isUser
+                      ? Border.all(color: Color(0xFF00BFA6).withOpacity(0.2))
+                      : null
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [MarkdownBlock(
                     data: message.text,
-                        config: MarkdownConfig(
+                    config: MarkdownConfig(
                         configs: [
                           PConfig(
                             textStyle: TextStyle(
-                              color: message.isUser ? Colors.white
-                                  : Color(0xFF1F2937),
-                              fontSize: 16,
-                              height: 1.4
+                                color: message.isUser
+                                    ? Color(0xFF1F2937)
+                                    : Colors.white,
+                                fontSize: 16,
+                                height: 1.4
                             ),
                           )
                         ]
-    )
+                    )
 
-                )],
+                ),
+
+                  if(message.messageType != null && !message.isUser)...[
+                    SizedBox(height: 4),
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                      decoration: BoxDecoration(
+                          color: Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(10)
+                      ),
+                      child: Text(
+                        message.messageType!.toUpperCase(),
+                        style: TextStyle(
+                            color: Color(0xFF00BFA6),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold
+                        ),
+                      ),
+                    )
+                  ]
+                ],
               ),
             ),
           ),
+
+          if(message.isUser)...[
+            SizedBox(width: 8),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                  color: Color(0xFF6B7280),
+                  borderRadius: BorderRadius.circular(14)
+              ),
+              child: Icon(Icons.person_outline, color: Color(0xFF00BFA6), size: 18),
+
+            )
+          ]
+
         ],
       ),
     );
+  }
+  Widget _buildTypingIndicator(){
+    return Padding(padding: EdgeInsetsGeometry.fromLTRB(16, 0, 16, 8),
+
+    child: Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              Color(0xFF00BFA6),
+              Color(0xFF4CAF50)
+            ]),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(Icons.health_and_safety),
+        ),
+
+        SizedBox(width: 8),
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Color(0xFF00BFA6).withOpacity(0.2))
+          ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTypingDot(0),
+                SizedBox(width: 4),
+                _buildTypingDot(1),
+                SizedBox(width: 4),
+                _buildTypingDot(1),
+                SizedBox(width: 4),
+              ],
+            ),
+        )
+      ],
+    ),
+    );
+  }
+
+
+  Widget _buildTypingDot(int index){
+    return AnimatedBuilder(animation: _animationController, builder: (context, child){
+      return Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(
+          color: Color(0xFF00BFA6),
+          borderRadius: BorderRadius.circular(3),
+        ),
+      );
+    });
   }
 }
